@@ -8,7 +8,7 @@ from transformers.modeling_outputs import (
     QuestionAnsweringModelOutput, SequenceClassifierOutput, TokenClassifierOutput,
 )
 
-from layers import GAULayer, Norm
+from utils.layers import GAULayer, Norm
 
 logger = logging.get_logger(__name__)
 

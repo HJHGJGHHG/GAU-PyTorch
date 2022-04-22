@@ -20,7 +20,7 @@ from mlm_trainer import Trainer
 import sys
 
 sys.path.append("../")
-from utils.modeling import GAUForMaskedLM
+from utils.modeling import GAUConfig, GAUForMaskedLM
 
 logger = logging.getLogger(__name__)
 
@@ -143,7 +143,7 @@ def main():
     # 加载clue_wwm_13g数据集
     datasets = Dataset.load_from_disk(data_args.train_dir)
     
-    config_cls, model_cls = FLASHQuadConfig, FLASHQuadForMaskedLM
+    config_cls, model_cls = GAUConfig, GAUForMaskedLM
     config = config_cls(num_hidden_layers=12)  # small
     # tokenizer使用了roformer_chinese_char_base
     tokenizer = BertTokenizerFast.from_pretrained(model_args.tokenizer_name)
