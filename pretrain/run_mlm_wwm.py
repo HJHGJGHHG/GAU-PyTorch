@@ -17,7 +17,10 @@ from transformers import (
 from transformers.trainer_utils import get_last_checkpoint, is_main_process
 
 from mlm_trainer import Trainer
-from flash.flash import FLASHQuadConfig, FLASHQuadForMaskedLM
+import sys
+
+sys.path.append("../")
+from utils.modeling import GAUForMaskedLM
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +46,7 @@ class DataTrainingArguments:
     """
     
     train_dir: Optional[str] = field(
-        default="/root/autodl-tmp/FLASHQuad_pytorch/clue_small_wwm_data",
+        default="/root/autodl-tmp/GAU-PyTorch/clue_small_wwm_data",
         metadata={"help": "The input training data file."},
     )
     overwrite_cache: bool = field(

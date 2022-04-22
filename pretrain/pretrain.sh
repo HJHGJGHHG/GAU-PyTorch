@@ -1,5 +1,5 @@
-TRAIN_DIR=/root/autodl-tmp/FLASHQuad_pytorch/clue_small_wwm_data
-OUTPUT_DIR=/root/autodl-tmp/FLASHQuad_pytorch/wwm_flash_small/
+TRAIN_DIR=/root/autodl-tmp/GAU-PyTorch/clue_small_wwm_data
+OUTPUT_DIR=/root/autodl-tmp/GAU-PyTorch/wwm_flash_small/
 BATCH_SIZE=128
 ACCUMULATION=4
 LR=3e-4
