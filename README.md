@@ -9,6 +9,7 @@
 - 创建 CLUE 测试代码  
 
 ## 四、更新
+- 2022/04/23 两种归一化策略比较  
 - 2022/04/22 重构预训练代码  
 
 ## 五、Pretrain
@@ -64,7 +65,20 @@ python run_mlm_wwm.py \
     --overwrite_output_dir
 ```
 
-## 六、测试
-### 6.1 MLM测试
+## 六、比较
+### 6.1 归一化策略
+&emsp;&emsp;根据 [苏神的分析](https://spaces.ac.cn/archives/9019)，采用了两种注意力矩阵的归一化策略：  
+$$
+softmax\_plus=softmax\left(\frac{\log_{512} n}{\sqrt{d}}QK^{\top}\right)V
+$$
+&emsp;&emsp;与FLASH 原论文提出的：  
+$$
+squared\_relu=\frac{1}{n} relu^2\left(\frac{QK^{\top}}{\sqrt{d}}\right)V
+$$
+&emsp;&emsp;在预训练阶段：  TODO
+&emsp;&emsp;而在 CLUE 测试集上：  TODO
 
-### 6.2 CLUE 测试
+## 七、测试
+### 7.1 MLM测试
+
+### 7.2 CLUE 测试
