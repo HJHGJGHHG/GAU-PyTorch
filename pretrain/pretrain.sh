@@ -1,5 +1,5 @@
 TRAIN_DIR=/root/autodl-tmp/GAU-PyTorch/clue_small_wwm_data
-OUTPUT_DIR=/root/autodl-tmp/GAU-PyTorch/outputs
+OUTPUT_DIR=/root/autodl-tmp/GAU-PyTorch/outputs/new_initializer
 BATCH_SIZE=64
 ACCUMULATION=4
 LR=2e-4
@@ -8,7 +8,7 @@ python run_mlm_wwm.py \
   --tokenizer_name junnyu/roformer_chinese_char_base \
   --train_dir $TRAIN_DIR \
   --output_dir $OUTPUT_DIR \
-  --logging_dir /root/tf-logs/$BATCH_SIZE \
+  --logging_dir /root/tf-logs/new_initializer \
   --per_device_train_batch_size $BATCH_SIZE \
   --gradient_accumulation_steps $ACCUMULATION \
   --learning_rate $LR \

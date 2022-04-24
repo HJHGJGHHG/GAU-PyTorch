@@ -12,6 +12,18 @@ from utils.layers import GAULayer, Norm
 
 logger = logging.get_logger(__name__)
 
+def initializer(tensor, num_hidden_layers=24, order=2, gain=1.0):
+    """使用截断正态分布初始化
+    """
+    shape = tensor.shape
+    if shape[0] > 10000 or shape[0] < 10:
+        hidden_size = shape[1]
+    else:
+        hidden_size = shape[0]
+    gain *= num_hidden_layers ** (-1. / order)
+    std = 1.13684723 / hidden_size ** 0.5 * gain
+    return nn.init.trunc_normal_(tensor, std=std)
+
 
 class GAUConfig(PretrainedConfig):
     model_type = "gau"
@@ -68,16 +80,13 @@ class GAUPreTrainedModel(PreTrainedModel):
     def _init_weights(self, module):
         """Initialize the weights"""
         if isinstance(module, nn.Linear):
-            module.weight.data.normal_(mean=0.0, std=self.config.initializer_range)
+            initializer(module.weight.data, self.config.num_hidden_layers, order=2, gain=1.0)
             if module.bias is not None:
                 module.bias.data.zero_()
         elif isinstance(module, nn.Embedding):
-            module.weight.data.normal_(mean=0.0, std=self.config.initializer_range)
+            initializer(module.weight.data, self.config.num_hidden_layers, order=2, gain=1.0)
             if module.padding_idx is not None:
                 module.weight.data[module.padding_idx].zero_()
-        elif isinstance(module, nn.LayerNorm):
-            module.bias.data.zero_()
-            module.weight.data.fill_(1.0)
 
 
 class GAUEmbeddings(nn.Module):

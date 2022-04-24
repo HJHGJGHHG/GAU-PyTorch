@@ -36,6 +36,7 @@ MODEL_CLASSES = {
     # RoFormer, GAU
     'gau': (GAUConfig, GAUForSequenceClassification, BertTokenizerFast),
     'roformer': (RoFormerConfig, RoFormerForSequenceClassification, RoFormerTokenizer),
+    'roformerv2': (RoFormerConfig, RoFormerForSequenceClassification, RoFormerTokenizer)
 }
 
 

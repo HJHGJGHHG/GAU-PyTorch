@@ -3,10 +3,10 @@
 &emsp;&emsp;`pytorch`版本的魔改 [《Transformer Quality in Linear Time》](https://arxiv.org/abs/2202.10447)  
 &emsp;&emsp;参考：JunnYu 的 [实现](https://github.com/JunnYu/GAU-alpha-pytorch) 与苏神的 [实现](https://github.com/ZhuiyiTechnology/GAU-alpha)
 
-## 二、存在的问题
+## 二、模型概述
 
 ## 三、TODO
-- 创建 CLUE 测试代码  
+- 创建显存、训练、推理速度比较代码  
 
 ## 四、更新
 - 2022/04/24 增加 CLUE 评测  
@@ -14,6 +14,7 @@
 - 2022/04/22 重构预训练代码  
 
 ## 五、Pretrain
+&emsp;&emsp;WWM，结巴分词  
 ### 5.1 准备数据
 &emsp;&emsp;基于 ***CLUECorpusSmall***，数据处理教程 [来源](https://github.com/PaddlePaddle/PaddleNLP/blob/develop/examples/language_model/data_tools/README.md)
 &emsp;&emsp;**数据集简介**：可用于语言建模、预训练或生成型任务等，数据量超过 14G，近 4000 个定义良好的 txt 文件、50 亿字。主要部分来自于 nlp_chinese_corpus 项目  
@@ -39,31 +40,30 @@ python run_chinese_ref.py  --model_name junnyu/roformer_chinese_char_base --inpu
 
 ### 5.2 开始训练（L-24-H-768）
 ```bash
-TRAIN_DIR=/root/autodl-tmp/FLASHQuad_pytorch/clue_small_wwm_data
-OUTPUT_DIR=/root/autodl-tmp/FLASHQuad_pytorch/wwm_flash_small/
-BATCH_SIZE=256
+TRAIN_DIR=/root/autodl-tmp/GAU-PyTorch/clue_small_wwm_data
+OUTPUT_DIR=/root/autodl-tmp/GAU-PyTorch/outputs
+BATCH_SIZE=64
 ACCUMULATION=4
-LR=4e-4
+LR=2e-4
 python run_mlm_wwm.py \
-    --do_train \
-    --tokenizer_name junnyu/roformer_chinese_char_base \
-    --train_dir $TRAIN_DIR \
-    --output_dir $OUTPUT_DIR \
-    --logging_dir /root/tf-logs \
-    --per_device_train_batch_size $BATCH_SIZE \
-    --gradient_accumulation_steps $ACCUMULATION \
-    --learning_rate $LR \
-    --weight_decay 0.01 \
-    --adam_epsilon 1e-6 \
-    --max_steps 250000 \
-    --warmup_steps 5000 \
-    --logging_steps 100 \
-    --save_steps 5000 \
-    --seed 1234 \
-    --max_grad_norm 3.0 \
-    --dataloader_num_workers 6 \
-    --fp16 \
-    --overwrite_output_dir
+  --do_train \
+  --tokenizer_name junnyu/roformer_chinese_char_base \
+  --train_dir $TRAIN_DIR \
+  --output_dir $OUTPUT_DIR \
+  --logging_dir /root/tf-logs/$BATCH_SIZE \
+  --per_device_train_batch_size $BATCH_SIZE \
+  --gradient_accumulation_steps $ACCUMULATION \
+  --learning_rate $LR \
+  --weight_decay 0.01 \
+  --adam_epsilon 1e-6 \
+  --max_steps 30000 \
+  --warmup_steps 3000 \
+  --logging_steps 50 \
+  --save_steps 3000 \
+  --seed 1234 \
+  --max_grad_norm 1.0 \
+  --dataloader_num_workers 6 \
+  --fp16
 ```
 
 ## 六、比较
@@ -78,18 +78,15 @@ squared\_relu=\frac{1}{n} relu^2\left(\frac{QK^{\top}}{\sqrt{d}}\right)V
 $$
 &emsp;&emsp;在预训练阶段：squared relu 出现了较为严重的波动，几次 checkpoint 也未能恢复正常。排查原因后发现是波动附近 batch 的 sql_len 与其他 batch 接近 512 的长度有较大差异。这进一步说明了 squared relu 在样本长度方面的迁移能力不好。而苏神的 softmax plus 则训练稳定，效果较好，原因与推导详见 [blog](https://spaces.ac.cn/archives/9019)  
 
-### 6.2 与 RoFormerV1&V2 的比较
-
-
 ## 七、测试
-### 7.1 MLM测试
+### 7.1 CLUE 分类测试
+&emsp;&emsp;在 CLUE 分类数据集上对 [RoFormerV1](https://huggingface.co/junnyu/roformer_chinese_base)、RoFormerV2（多任务）、RoFormerV2（MLM，3W步）、GAU（3W步）、GAU（完整训练）（以上均为 Base 模型）进行对比：  
+|  模型  | AFQMC  | CMNLI | CSL | IFLYTEK | TNews | WSC | Score |
+|  :--:  | :--:  | :--:  | :--:  | :--:  | :--:  | :--:  | :--:  |
+| RoFormerV1 | 74.21 | 81.50 | 83.13 | 60.17 | 58.07 | 83.22 | 73.38 |
+| RoFormerV2 | **76.16** | 81.41 | **85.97** | **63.64** | **59.39** | **85.53** | 75.35 |
+| GAU(3W) | 73.14 | 76.73 | 80.44 | 59.81 | 54.66 | 75.9 | 70.19 |
+| RoFormerV2(3W) | 73.97 | 77.82 | 79.65 | 58.73 | 53.3 | 76.41 | 69.96 |
+| GAU(Full) | 74.51 | **81.97** | 83.7 | 62.72 | 57.93 | 82.89 | 73.95 |
 
-### 7.2 CLUE 测试
-&emsp;&emsp;在 CLUE 分类数据集上对 [RoFormerV1](https://huggingface.co/junnyu/roformer_chinese_base)、RoFormerV2（多任务）、RoFormerV2（MLM，3W步）、GAU（3W步）、GAU（完整训练）进行对比：  
-|  模型  | AFQMC  | CMNLI | CSL | IFLYTEK | OCNLI | TNews | WSC  | COPA |
-|  :--:  | :--:  | :--:  | :--:  | :--:  | :--:  | :--:  | :--:  | :--:  |
-| RoFormerV1 | 74.21 | 81.49 |      |      |      |      |      |      |
-| RoFormerV2 |      |      |      |      |      |      |      |      |
-| GAU(Full) |      |      |      |      |      |      |      |      |
-| RoFormerV2(5W) |      |      |      |      |      |      |      |      |
-| GAU(5W) |      |      |      |      |      |      |      |      |
+### 7.2 显存、速度对比
