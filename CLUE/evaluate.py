@@ -8,9 +8,6 @@ import numpy as np
 from torch.utils.data.distributed import DistributedSampler
 from torch.utils.data import DataLoader, RandomSampler, SequentialSampler, TensorDataset
 from transformers import (
-    RoFormerForSequenceClassification,
-    RoFormerTokenizer,
-    RoFormerConfig,
     AdamW,
     get_linear_schedule_with_warmup,
     BertTokenizerFast,
@@ -30,9 +27,11 @@ import sys
 
 sys.path.append("../")
 from utils.modeling import GAUConfig, GAUForMaskedLM, GAUForSequenceClassification
+from utils.roformer.configuration_roformer import RoFormerConfig
+from utils.roformer.tokenization_roformer import RoFormerTokenizer
+from utils.roformer.modeling_roformer import RoFormerForSequenceClassification
 
 WEIGHTS_NAME = "pytorch_model.bin"
-ALL_MODELS = sum((tuple(conf.pretrained_config_archive_map.keys()) for conf in (GAUConfig, RoFormerConfig)), ())
 MODEL_CLASSES = {
     # RoFormer, GAU
     'gau': (GAUConfig, GAUForSequenceClassification, BertTokenizerFast),
@@ -47,9 +46,7 @@ def get_args_parser():
                         help="The input data dir. Should contain the .tsv files (or other data files) for the task.")
     parser.add_argument("--model_type", default=None, type=str, required=True,
                         help="Model type selected in the list: " + ", ".join(MODEL_CLASSES.keys()))
-    parser.add_argument("--model_name_or_path", default=None, type=str, required=True,
-                        help="Path to pre-trained model or shortcut name selected in the list: " + ", ".join(
-                            ALL_MODELS))
+    parser.add_argument("--model_name_or_path", default=None, type=str, required=True)
     parser.add_argument("--task_name", default=None, type=str, required=True,
                         help="The name of the task to train selected in the list: " + ", ".join(processors.keys()))
     parser.add_argument("--output_dir", default=None, type=str, required=True,
@@ -67,7 +64,7 @@ def get_args_parser():
                         help="Set this flag if you are using an uncased model.")
     parser.add_argument("--per_gpu_train_batch_size", default=16, type=int,
                         help="Batch size per GPU/CPU for training.")
-    parser.add_argument("--per_gpu_eval_batch_size", default=16, type=int,
+    parser.add_argument("--per_gpu_eval_batch_size", default=64, type=int,
                         help="Batch size per GPU/CPU for evaluation.")
     parser.add_argument('--gradient_accumulation_steps', type=int, default=1,
                         help="Number of updates steps to accumulate before performing a backward/update pass.")
@@ -85,9 +82,9 @@ def get_args_parser():
                         help="If > 0: set total number of training steps to perform. Override num_train_epochs.")
     parser.add_argument("--warmup_proportion", default=0.1, type=float,
                         help="Proportion of training to perform linear learning rate warmup for,E.g., 0.1 = 10% of training.")
-    parser.add_argument('--logging_steps', type=int, default=20,
+    parser.add_argument('--logging_steps', type=int, default=200,
                         help="Log every X updates steps.")
-    parser.add_argument('--save_steps', type=int, default=1000,
+    parser.add_argument('--save_steps', type=int, default=200000,
                         help="Save checkpoint every X updates steps.")
     parser.add_argument("--eval_all_checkpoints", action='store_true',
                         help="Evaluate all checkpoints starting with the same prefix as model_name ending and ending with step number")
@@ -402,10 +399,9 @@ def main(args):
     
     args.model_type = args.model_type.lower()
     config_class, model_class, tokenizer_class = MODEL_CLASSES[args.model_type]
-    config = config_class.from_pretrained(args.config_name if args.config_name else args.model_name_or_path,
-                                          num_labels=num_labels, finetuning_task=args.task_name)
-    tokenizer = tokenizer_class.from_pretrained(args.tokenizer_name if args.tokenizer_name else args.model_name_or_path,
-                                                do_lower_case=args.do_lower_case)
+    config = config_class.from_pretrained(args.model_name_or_path, num_labels=num_labels,
+                                          finetuning_task=args.task_name)
+    tokenizer = tokenizer_class.from_pretrained(args.model_name_or_path, do_lower_case=args.do_lower_case)
     model = model_class.from_pretrained(args.model_name_or_path, from_tf=bool('.ckpt' in args.model_name_or_path),
                                         config=config)
     

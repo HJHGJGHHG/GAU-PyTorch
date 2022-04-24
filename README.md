@@ -9,6 +9,7 @@
 - 创建 CLUE 测试代码  
 
 ## 四、更新
+- 2022/04/24 增加 CLUE 评测  
 - 2022/04/23 两种归一化策略比较  
 - 2022/04/22 重构预训练代码  
 
@@ -75,10 +76,20 @@ $$
 $$
 squared\_relu=\frac{1}{n} relu^2\left(\frac{QK^{\top}}{\sqrt{d}}\right)V
 $$
-&emsp;&emsp;在预训练阶段：  TODO
-&emsp;&emsp;而在 CLUE 测试集上：  TODO
+&emsp;&emsp;在预训练阶段：squared relu 出现了较为严重的波动，几次 checkpoint 也未能恢复正常。排查原因后发现是波动附近 batch 的 sql_len 与其他 batch 接近 512 的长度有较大差异。这进一步说明了 squared relu 在样本长度方面的迁移能力不好。而苏神的 softmax plus 则训练稳定，效果较好，原因与推导详见 [blog](https://spaces.ac.cn/archives/9019)  
+
+### 6.2 与 RoFormerV1&V2 的比较
+
 
 ## 七、测试
 ### 7.1 MLM测试
 
 ### 7.2 CLUE 测试
+&emsp;&emsp;在 CLUE 分类数据集上对 [RoFormerV1](https://huggingface.co/junnyu/roformer_chinese_base)、RoFormerV2（多任务）、RoFormerV2（MLM，3W步）、GAU（3W步）、GAU（完整训练）进行对比：  
+|  模型  | AFQMC  | CMNLI | CSL | IFLYTEK | OCNLI | TNews | WSC  | COPA |
+|  :--:  | :--:  | :--:  | :--:  | :--:  | :--:  | :--:  | :--:  | :--:  |
+| RoFormerV1 | 74.21 | 81.49 |      |      |      |      |      |      |
+| RoFormerV2 |      |      |      |      |      |      |      |      |
+| GAU(Full) |      |      |      |      |      |      |      |      |
+| RoFormerV2(5W) |      |      |      |      |      |      |      |      |
+| GAU(5W) |      |      |      |      |      |      |      |      |

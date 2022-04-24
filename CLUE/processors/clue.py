@@ -8,7 +8,11 @@
 import logging
 import os
 import torch
-from utils import DataProcessor, InputExample, InputFeatures
+
+import sys
+
+sys.path.append("../")
+from processors.utils import DataProcessor, InputExample, InputFeatures
 
 logger = logging.getLogger(__name__)
 

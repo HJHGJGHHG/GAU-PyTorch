@@ -144,7 +144,7 @@ def main():
     datasets = Dataset.load_from_disk(data_args.train_dir)
     
     config_cls, model_cls = GAUConfig, GAUForMaskedLM
-    config = config_cls(num_hidden_layers=12)  # small
+    config = config_cls()
     # tokenizer使用了roformer_chinese_char_base
     tokenizer = BertTokenizerFast.from_pretrained(model_args.tokenizer_name)
     model = model_cls(config)
