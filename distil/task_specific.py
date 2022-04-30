@@ -38,7 +38,7 @@ TEACHER_MODEL_CLASSES = {
 }
 
 
-def TeacherAdaptor(batch, model_outputs, with_logits=True, with_mask=False):
+def TeacherAdaptor(batch, model_outputs, with_logits=False, with_mask=False):
     dict_obj = {'hidden': model_outputs[2]}
     if with_mask:
         dict_obj['inputs_mask'] = batch[1]
@@ -47,7 +47,7 @@ def TeacherAdaptor(batch, model_outputs, with_logits=True, with_mask=False):
     return dict_obj
 
 
-def StudentAdaptor(batch, model_outputs, with_logits=True, with_mask=False):
+def StudentAdaptor(batch, model_outputs, with_logits=False, with_mask=False):
     dict_obj = {'hidden': model_outputs[2]}
     if with_mask:
         dict_obj['inputs_mask'] = batch[1]
@@ -352,7 +352,7 @@ def main(args):
     ]
     distill_config = DistillationConfig(
         temperature=args.temperature,
-        intermediate_matches=[])
+        intermediate_matches=intermediate_matches)
     logger.info(f"{train_config}")
     logger.info(f"{distill_config}")
     adaptor_T = TeacherAdaptor
