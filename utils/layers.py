@@ -28,7 +28,6 @@ class ScaleOffset(nn.Module):
     说明：1、具体操作为最后一维乘上gamma向量并加上beta向量；
          2、如果直接指定scale和offset，那么直接常数缩放和平移；
     """
-    
     def __init__(
             self,
             hidden_size=768,
@@ -70,7 +69,6 @@ class GatedAttentionUnit(nn.Module):
     说明：没有加入加性相对位置编码，个人认为是不必要的；如果觉得有必要，
          可以自行通过a_bias传入。
     """
-    
     def __init__(
             self,
             hidden_size=768,
