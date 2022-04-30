@@ -1,9 +1,16 @@
 # GAU-PyTorch
 ## 一、Describtion
-&emsp;&emsp;`pytorch`版本的魔改 [《Transformer Quality in Linear Time》](https://arxiv.org/abs/2202.10447)  
+&emsp;&emsp;`PyTorch`版本的魔改 [《Transformer Quality in Linear Time》](https://arxiv.org/abs/2202.10447)在中文 NLU 任务上的复现、评测与压缩试验。  
 &emsp;&emsp;参考：JunnYu 的 [实现](https://github.com/JunnYu/GAU-alpha-pytorch) 与苏神的 [实现](https://github.com/ZhuiyiTechnology/GAU-alpha)
 
 ## 二、模型概述
+&emsp;&emsp;原论文提出了一种 ***将 Attention 与 FFN 相结合*** 的方案：GAU。  
+&emsp;&emsp;标准的 FFN 是两层 MLP ：  
+$$
+\begin{equation}\boldsymbol{O}=\phi(\boldsymbol{X}\boldsymbol{W}_u)\boldsymbol{W}_o\end{equation}
+$$
+&emsp;&emsp;其中 $\boldsymbol{X}\in\mathbb{R}^{n\times d},\boldsymbol{W}_u\in\mathbb{R}^{d\times e},\boldsymbol{W}_o\in\mathbb{R}^{e\times d}$。
+
 
 ## 三、TODO
 - 创建显存、训练、推理速度比较代码  
@@ -79,14 +86,28 @@ $$
 &emsp;&emsp;在预训练阶段：squared relu 出现了较为严重的波动，几次 checkpoint 也未能恢复正常。排查原因后发现是波动附近 batch 的 sql_len 与其他 batch 接近 512 的长度有较大差异。这进一步说明了 squared relu 在样本长度方面的迁移能力不好。而苏神的 softmax plus 则训练稳定，效果较好，原因与推导详见 [blog](https://spaces.ac.cn/archives/9019)  
 
 ## 七、测试
+&emsp;&emsp;以下均是在 A40*1 fp16 取得的结果。  
 ### 7.1 CLUE 分类测试
 &emsp;&emsp;在 CLUE 分类数据集上对 [RoFormerV1](https://huggingface.co/junnyu/roformer_chinese_base)、RoFormerV2（多任务）、RoFormerV2（MLM，3W步）、GAU（3W步）、GAU（完整训练）（以上均为 Base 模型）进行对比：  
 |  模型  | AFQMC  | CMNLI | CSL | IFLYTEK | TNews | WSC | Score |
 |  :--:  | :--:  | :--:  | :--:  | :--:  | :--:  | :--:  | :--:  |
 | RoFormerV1 | 74.21 | 81.50 | 83.13 | 60.17 | 58.07 | 83.22 | 73.38 |
-| RoFormerV2 | **76.16** | 81.41 | **85.97** | **63.64** | **59.39** | **85.53** | 75.35 |
+| RoFormerV2 | **76.16** | 81.41 | **85.97** | **63.64** | **59.39** | **85.53** | **75.35** |
 | GAU(3W) | 73.14 | 76.73 | 80.44 | 59.81 | 54.66 | 75.9 | 70.19 |
 | RoFormerV2(3W) | 73.97 | 77.82 | 79.65 | 58.73 | 53.3 | 76.41 | 69.96 |
 | GAU(Full) | 74.51 | **81.97** | 83.7 | 62.72 | 57.93 | 82.89 | 73.95 |
 
+&emsp;&emsp;可见 GAU 虽比拟不了 RoFormerV2 的结果，但超出 V1 约 0.6 个点，而且比对两个训练 3W 步的模型可知，GAU 的拟合能力是不逊于 RoFormerV2 的。如果再仔细设计一下预训练，增多语料很有可能会取得更好的结果。  
+
 ### 7.2 显存、速度对比
+&emsp;&emsp;以下是在 ***CLUE CMNLI*** 任务上取 bs=8 的推理速度：  
+|  模型   | Time Cost  |
+|  :--:  | :--:  |
+| RoFormerV1 |      |
+| RoFormerV2 |      |
+| GAU |      |
+
+
+
+
+
