@@ -410,6 +410,7 @@ def main(args):
         torch.distributed.barrier()  # Make sure only the first process in distributed training will download model & vocab
     model.to(args.device)
     logger.info("Training/evaluation parameters %s", args)
+    
     # Training
     if args.do_train:
         train_dataset = load_and_cache_examples(args, args.task_name, tokenizer, data_type='train')

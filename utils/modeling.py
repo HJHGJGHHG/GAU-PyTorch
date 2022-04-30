@@ -12,6 +12,7 @@ from utils.layers import GAULayer, Norm
 
 logger = logging.get_logger(__name__)
 
+
 def initializer(tensor, num_hidden_layers=24, order=2, gain=1.0):
     """使用截断正态分布初始化
     """

@@ -22,12 +22,12 @@ $$
 $$
 \begin{equation}\boldsymbol{A}=\text{relu}^2\left(\frac{\mathcal{Q}(\boldsymbol{Z})\mathcal{K}(\boldsymbol{Z})^{\top}}{n}\right)=\frac{1}{n^2}\text{relu}^2\left(\mathcal{Q}(\boldsymbol{Z})\mathcal{K}(\boldsymbol{Z})^{\top}\right),\quad \boldsymbol{Z}=\phi_z(\boldsymbol{X}\boldsymbol{W}_z)\label{eq:relu-att}\end{equation}
 $$
-&emsp;&emsp;其中 $\boldsymbol{W}_z\in\mathbb{R}^{d\times s}$，$s$ 即注意力的 head_size，文中取了 $s=128$ ，而 $\mathcal{Q},\mathcal{K}$ 是简单的仿射变换（像 Layer Norm 中的乘 $\gamma$ 加  $\beta$），$relu^2$ 则是 $relu$ 后再平方。  
-&emsp;&emsp;而后每一层只用一个 GAU 单元就行了，原来一层的计算量大约等于两层 GAU。而且 GAU 不用 ***multi-head***。  
-&emsp;&emsp;原论文的主要思路便是这些了，很简洁但是也有很多不合理的地方：比如说缩放因子取的是 $n^2$ ？？在长序列的时候是不是太小了？还有就是 $relu^2$​ ，虽然说这是 NAS 搜出来的，但是相比 softmax 感觉不是太好。这部分 [苏神也分析到了](https://spaces.ac.cn/archives/9019)。也可以从稀疏性去考虑：原始 softmax 不仅仅带来的是非负性与因子的缩放，更代表着将 Token 间的关系集中在少数几个 Token 上，这种注意力的“集中”、更多信息的引入在数学上表现为秩的增加；而 $relu^2$ 在负方向直接归零了，而且 RoPE 具有一定的远程衰减功能，在相对距离足够大时，即便是初始阶段经过 RoPE 之后的内积结果平均来说至少有一半是负的，所以这种 Attention 最后有相当一部分是零，导致秩降低的可能性更大，包含的信息很可能是减少的。  
+&emsp;&emsp;其中 $\boldsymbol{W}_z\in\mathbb{R}^{d\times s}$​，$s$​ 即注意力的 head_size，文中取了 $s=128$​ ，而 $\mathcal{Q},\mathcal{K}$​ 是简单的仿射变换（像 Layer Norm 中的乘 $\gamma$​ 加  $\beta$​），$relu^2$​ 则是 $relu$​ 后再平方。  
+&emsp;&emsp;而后每一层只用一个 GAU 单元就行了，原来一层的计算量大约等于两层 GAU。而且 GAU 不用 multi-head。  
+&emsp;&emsp;原论文的主要思路便是这些了，很简洁但是也有很多不合理的地方：比如说缩放因子取的是 $n^2$​ ？？在长序列的时候是不是太小了？还有就是 $relu^2$​ ，虽然说这是 NAS 搜出来的，但是相比 softmax 感觉不是太好。这部分 [苏神也分析到了](https://spaces.ac.cn/archives/9019)。也可以从稀疏性去考虑：原始 softmax 不仅仅带来的是非负性与因子的缩放，更代表着将 Token 间的关系集中在少数几个 Token 上，这种注意力的“集中”、更多信息的引入在数学上表现为秩的增加；而 $relu^2$​ 在负方向直接归零了，而且 RoPE 具有一定的远程衰减功能，在相对距离足够大时，即便是初始阶段经过 RoPE 之后的内积结果平均来说至少有一半是负的，所以这种 Attention 最后有相当一部分是零，导致秩降低的可能性更大，包含的信息很可能是减少的。  
 鉴于此，本文使用了苏神提出的改进版的 softmax：  
 $$
-\begin{equation}\boldsymbol{A} = softmax\left(\frac{\log_{512} n}{\sqrt{d}}\mathcal{Q}(\boldsymbol{Z})\mathcal{K}(\boldsymbol{Z})^{\top}\right)\end{equation}
+\begin{equation}\boldsymbol{A}=softmax\left(\frac{\log_{512} n}{\sqrt{d}}\mathcal{Q}(\boldsymbol{Z})\mathcal{K}(\boldsymbol{Z})^{\top}\right)\end{equation}
 $$
 
 ## 三、TODO
@@ -129,9 +129,9 @@ $$
 &emsp;&emsp;以下是在 ***CLUE CMNLI*** 任务上取 bs=64 sql_len=512 的最大显存占用：  
 |  模型   | VRam Cost  | Percent |
 |  :--:  | :--:  | :--:  |
-| RoFormerV1 | 24853M | 100% |
-| RoFormerV2 | 24853M | 100% |
-| GAU | 17453M |  |
+| RoFormerV1 | 18487M | 100% |
+| RoFormerV2 | 15807M | 85.5% |
+| GAU | 17453M | 94.4% |
 
 &emsp;&emsp;以下是各模型的参数量对比：（XForSequenceClassification）  
 |  模型   | Parametrers  | Percent |

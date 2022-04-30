@@ -1,10 +1,10 @@
-TASK=cmnli
+TASK=tnews
 LR=3e-5
 BATCH_SIZE=64
 python evaluate.py \
-  --model_type roformerv2 \
+  --model_type gau \
   --data_dir /root/autodl-tmp/GAU-PyTorch/CLUE/CLUEdatasets/$TASK \
-  --model_name_or_path /root/autodl-tmp/models/roformerv2_chinese_base \
+  --model_name_or_path /root/autodl-tmp/models/GAU-Base-Full \
   --task_name $TASK \
   --output_dir /root/autodl-tmp/GAU-PyTorch/CLUE/output/$TASK/ \
   --max_seq_length 512 \
