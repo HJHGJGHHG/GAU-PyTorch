@@ -7,7 +7,7 @@ from transformers.activations import get_activation
 INF = float("inf")
 
 
-def attention_normalize(a, l, dim=-1, method="softmax"):
+def attention_normalize(a, l, dim=-1, method="softmax", scaling_factor="n"):
     """不同的注意力归一化方案
     softmax：常规/标准的指数归一化；
     squared_relu：来自 https://arxiv.org/abs/2202.10447 ；
@@ -17,7 +17,12 @@ def attention_normalize(a, l, dim=-1, method="softmax"):
         return torch.softmax(a, dim=dim)
     else:
         if method == "squared_relu":
-            return torch.relu(a) ** 2 / l
+            if scaling_factor == "n":
+                return torch.relu(a) ** 2 / l
+            elif scaling_factor == "n^2":
+                return torch.relu(a / l) ** 2
+            elif scaling_factor == "ns":
+                return torch.relu(a) ** 2 / (128 * l)
         elif method == "softmax_plus":
             return torch.softmax(a * torch.log(l) / np.log(512), dim=dim)
     return a
@@ -28,6 +33,7 @@ class ScaleOffset(nn.Module):
     说明：1、具体操作为最后一维乘上gamma向量并加上beta向量；
          2、如果直接指定scale和offset，那么直接常数缩放和平移；
     """
+    
     def __init__(
             self,
             hidden_size=768,
@@ -69,6 +75,7 @@ class GatedAttentionUnit(nn.Module):
     说明：没有加入加性相对位置编码，个人认为是不必要的；如果觉得有必要，
          可以自行通过a_bias传入。
     """
+    
     def __init__(
             self,
             hidden_size=768,
@@ -79,6 +86,7 @@ class GatedAttentionUnit(nn.Module):
             normalization="softmax_plus",
             attention_scale=True,
             attention_dropout=0.1,
+            scaling_factor="n",
     ):
         super().__init__()
         self.activation = get_activation(activation)
@@ -88,6 +96,7 @@ class GatedAttentionUnit(nn.Module):
         self.normalization = normalization
         self.attention_scale = attention_scale
         self.attention_dropout = attention_dropout
+        self.scaling_factor = scaling_factor
         
         self.i_dense = nn.Linear(
             hidden_size, 2 * intermediate_size + attention_key_size, bias=self.use_bias
@@ -140,7 +149,7 @@ class GatedAttentionUnit(nn.Module):
         else:
             l = x.shape[1]
         
-        A = attention_normalize(a, l, dim=-1, method=self.normalization)
+        A = attention_normalize(a, l, dim=-1, method=self.normalization, scaling_factor=self.scaling_factor)
         
         A = F.dropout(A, p=self.attention_dropout, training=self.training)
         
@@ -164,6 +173,7 @@ class GAULayer(nn.Module):
             attention_dropout=0.1,
             hidden_dropout=0.1,
             eps=1e-12,
+            scaling_factor="n",
     ):
         super().__init__()
         self.gau = GatedAttentionUnit(
@@ -175,6 +185,7 @@ class GAULayer(nn.Module):
             normalization,
             attention_scale,
             attention_dropout,
+            scaling_factor,
         )
         self.norm = Norm(eps=eps)
         self.hidden_dropout = hidden_dropout

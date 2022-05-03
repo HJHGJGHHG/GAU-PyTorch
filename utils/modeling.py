@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 from transformers.utils import logging
+from transformers.activations import ACT2FN
 from transformers.configuration_utils import PretrainedConfig
 from transformers.modeling_utils import PreTrainedModel, SequenceSummary
 from transformers.modeling_outputs import (
@@ -50,6 +51,7 @@ class GAUConfig(PretrainedConfig):
             normalization="softmax_plus",
             attention_scale=True,
             embedding_size=None,
+            scaling_factor="n",
             **kwargs
     ):
         super().__init__(pad_token_id=pad_token_id, **kwargs)
@@ -72,6 +74,7 @@ class GAUConfig(PretrainedConfig):
         self.attention_scale = attention_scale
         self.intermediate_size = intermediate_size
         self.embedding_size = hidden_size if embedding_size is None else embedding_size
+        self.scaling_factor = scaling_factor
 
 
 class GAUPreTrainedModel(PreTrainedModel):
@@ -135,6 +138,7 @@ class GAUEncoder(nn.Module):
                     attention_dropout=config.attention_probs_dropout_prob,
                     hidden_dropout=config.hidden_dropout_prob,
                     eps=config.layer_norm_eps,
+                    scaling_factor=config.scaling_factor,
                 )
                 for _ in range(config.num_hidden_layers)
             ]
@@ -307,6 +311,27 @@ class GAUOnlyMLMHead(nn.Module):
         return prediction_scores
 
 
+class GAUClassificationHead(nn.Module):
+    """Head for sentence-level classification tasks."""
+    
+    def __init__(self, config):
+        super().__init__()
+        self.dense = nn.Linear(config.hidden_size, config.hidden_size)
+        self.dropout = nn.Dropout(config.hidden_dropout_prob)
+        self.out_proj = nn.Linear(config.hidden_size, config.num_labels)
+        
+        self.config = config
+    
+    def forward(self, features):
+        x = features[:, 0, :]  # take <s> token (equiv. to [CLS])
+        x = self.dropout(x)
+        x = self.dense(x)
+        x = ACT2FN[self.config.hidden_act](x)
+        x = self.dropout(x)
+        x = self.out_proj(x)
+        return x
+
+
 class GAUForMaskedLM(GAUPreTrainedModel):
     def __init__(self, config):
         super().__init__(config)
@@ -378,7 +403,7 @@ class GAUForSequenceClassification(GAUPreTrainedModel):
         self.num_labels = config.num_labels
         self.gau = GAUModel(config)
         self.sequence_summary = SequenceSummary(config)
-        self.classifier = nn.Linear(config.hidden_size, config.num_labels)
+        self.classifier = GAUClassificationHead(config)
         
         # Initialize weights and apply final processing
         self.post_init()
@@ -406,8 +431,8 @@ class GAUForSequenceClassification(GAUPreTrainedModel):
             output_hidden_states=output_hidden_states,
             return_dict=return_dict,
         )
-        pooled_output = self.sequence_summary(outputs[0])
-        logits = self.classifier(pooled_output)
+        sequence_output = outputs[0]
+        logits = self.classifier(sequence_output)
         
         loss = None
         if labels is not None:

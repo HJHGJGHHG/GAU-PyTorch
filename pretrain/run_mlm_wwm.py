@@ -2,6 +2,8 @@ import os
 import sys
 import time
 import logging
+
+import torch
 import transformers
 
 from typing import Optional
@@ -35,6 +37,18 @@ class ModelArguments:
         default="junnyu/roformer_chinese_char_base",
         metadata={
             "help": "Pretrained tokenizer name or path if not the same as model_name"
+        },
+    )
+    activation_function: Optional[str] = field(
+        default="softmax_plus",
+        metadata={
+            "help": "attention normalize functions"
+        },
+    )
+    scaling_factor: Optional[str] = field(
+        default="scaling_factor",
+        metadata={
+            "help": "scaling_factor"
         },
     )
 
@@ -135,6 +149,8 @@ def main():
         transformers.utils.logging.enable_default_handler()
         transformers.utils.logging.enable_explicit_format()
     logger.info("Training parameters %s", training_args)
+    logger.info("Model parameters %s", model_args)
+    logger.info("Data parameters %s", data_args)
     
     # Set seed before initializing model.
     set_seed(training_args.seed)
@@ -144,7 +160,11 @@ def main():
     datasets = Dataset.load_from_disk(data_args.train_dir)
     
     config_cls, model_cls = GAUConfig, GAUForMaskedLM
-    config = config_cls()
+    config = config_cls(
+        normalization=model_args.activation_function,
+        scaling_factor=model_args.scaling_factor
+    )
+    logger.info("Model config %s", config)
     # tokenizer使用了roformer_chinese_char_base
     tokenizer = BertTokenizerFast.from_pretrained(model_args.tokenizer_name)
     model = model_cls(config)

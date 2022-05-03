@@ -1,6 +1,6 @@
 # GAU-PyTorch
 ## 一、Describtion
-&emsp;&emsp;`PyTorch`版本的魔改 [《Transformer Quality in Linear Time》](https://arxiv.org/abs/2202.10447)在中文 NLU 任务上的复现、评测与压缩试验。  
+&emsp;&emsp;`PyTorch`版本的魔改 [《Transformer Quality in Linear Time》](https://arxiv.org/abs/2202.10447)在中文 NLU 任务上的复现、评测试验。  
 &emsp;&emsp;参考：JunnYu 的 [实现](https://github.com/JunnYu/GAU-alpha-pytorch) 与苏神的 [实现](https://github.com/ZhuiyiTechnology/GAU-alpha) 与 [笔记](https://spaces.ac.cn/archives/8934)
 
 ## 二、模型概述
@@ -32,7 +32,7 @@ $$
 $$
 
 ## 三、TODO
-- 创建显存、训练、推理速度比较代码  
+- 创建蒸馏实验  
 
 ## 四、更新
 - 2022/04/27 添加模型笔记、显存、推理速度比较结果。   
@@ -49,20 +49,20 @@ $$
 
 (1) **数据集解压**
 ``` shell
-unzip comment2019zh_corpus.zip -d  /root/autodl-tmp/FLASHQuad_pytorch/clue_small_wwm_data/comment2019zh_corpus
-unzip news2016zh_corpus.zip    -d  /root/autodl-tmp/FLASHQuad_pytorch/clue_small_wwm_data/news2016zh_corpus  
-unzip webText2019zh_corpus.zip -d  /root/autodl-tmp/FLASHQuad_pytorch/clue_small_wwm_data/webText2019zh_corpus
-unzip wiki2019zh_corpus.zip    -d  /root/autodl-tmp/FLASHQuad_pytorch/clue_small_wwm_data/wiki2019zh_corpus  
+unzip comment2019zh_corpus.zip -d  /root/autodl-tmp/GAU-PyTorch/small_data/comment2019zh_corpus
+unzip news2016zh_corpus.zip    -d  /root/autodl-tmp/GAU-PyTorch/small_data/news2016zh_corpus  
+unzip webText2019zh_corpus.zip -d  /root/autodl-tmp/GAU-PyTorch/small_data/webText2019zh_corpus
+unzip wiki2019zh_corpus.zip    -d  /root/autodl-tmp/GAU-PyTorch/small_data/wiki2019zh_corpus  
 ```
 (2) **将txt文件转换为jsonl格式**
 ```shell
 cd data
-python trans_to_json.py  --input_path /root/autodl-tmp/FLASHQuad_pytorch/clue_small_wwm_data --output_path /root/autodl-tmp/FLASHQuad_pytorch/clue_small_wwm_data/clue_corpus_small_14g.jsonl
+python trans_to_json.py  --input_path /root/autodl-tmp/GAU-PyTorch/small_data --output_path /root/autodl-tmp/GAU-PyTorch/small_data/small_data.jsonl
 ```
 (3) **使用 rjieba 进行中文分词**
 &emsp;&emsp;会得到`refids.txt`和`reftext.txt`两个文件,并组合`refids.txt`和`reftext.txt`两个文件保存成`huggingface`的`dataset`，存放在 clue_small_wwm_data 文件夹下。  
 ```shell
-python run_chinese_ref.py  --model_name junnyu/roformer_chinese_char_base --input_path clue_corpus_small_14g.jsonl
+python run_chinese_ref.py  --model_name /root/autodl-tmp/models/GAU --input_path /root/autodl-tmp/GAU-PyTorch/small_data/small_data.jsonl
 ```
 
 ### 5.2 开始训练（L-24-H-768）
@@ -140,4 +140,3 @@ $$
 | RoFormerV1 | 124,147,970 | 128.63% |
 | RoFormerV2 | 94,777,090 | 98.20% |
 | GAU | 96,519,170 | 100% |
-

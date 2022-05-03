@@ -168,8 +168,8 @@ def main(args):
     step = 0
     total_bytes_processed = 0
     startup_start = time.time()
-    with open("data/refids.txt", "w+", encoding="utf8") as w1:
-        with open("data/reftext.txt", "w+", encoding="utf8") as w2:
+    with open("/root/autodl-tmp/GAU-PyTorch/data/refids.txt", "w+", encoding="utf8") as w1:
+        with open("/root/autodl-tmp/GAU-PyTorch/data/reftext.txt", "w+", encoding="utf8") as w2:
             for file_path in tqdm(file_paths):
                 if file_path.endswith(".jsonl"):
                     text = open(file_path, "r", encoding="utf-8")
@@ -210,13 +210,13 @@ def main(args):
     
     print("concatenate_datasets...")
     reftext = load_dataset("text", data_files="/root/autodl-tmp/GAU-PyTorch/data/reftext.txt",
-                           cache_dir="/root/autodl-tmp/FLASHQuad_pytorch/cache")["train"]
+                           cache_dir="/root/autodl-tmp/GAU-PyTorchh/cache")["train"]
     refids = load_dataset("text", data_files="/root/autodl-tmp/GAU-PyTorch/data/refids.txt",
                           cache_dir="/root/autodl-tmp/GAU-PyTorch/cache")["train"]
     refids = refids.rename_column("text", "chinese_ref")
     refids = refids.map(lambda example: {"chinese_ref": eval(example["chinese_ref"])})
     concat_ds = concatenate_datasets([reftext, refids], axis=1)
-    concat_ds.save_to_disk("/root/autodl-tmp/GAU-PyTorch/clue_small_wwm_data")
+    concat_ds.save_to_disk("/root/autodl-tmp/GAU-PyTorch/small_data")
 
 
 if __name__ == "__main__":
@@ -224,7 +224,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--model_name",
         type=str,
-        default="junnyu/roformer_chinese_char_base",
+        default="/root/autodl-tmp/models/GAU",
         help="What model to use.",
     )
     
@@ -232,7 +232,7 @@ if __name__ == "__main__":
     group.add_argument(
         "--input_path",
         type=str,
-        default="data/clue_corpus_small_14g.jsonl",
+        default="/root/autodl-tmp/GAU-PyTorch/small_data/small_data.jsonl",
         help="Path to input JSON files.",
     )
     
