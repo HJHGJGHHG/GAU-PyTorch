@@ -210,7 +210,7 @@ def main(args):
     
     print("concatenate_datasets...")
     reftext = load_dataset("text", data_files="/root/autodl-tmp/GAU-PyTorch/data/reftext.txt",
-                           cache_dir="/root/autodl-tmp/GAU-PyTorchh/cache")["train"]
+                           cache_dir="/root/autodl-tmp/GAU-PyTorch/cache")["train"]
     refids = load_dataset("text", data_files="/root/autodl-tmp/GAU-PyTorch/data/refids.txt",
                           cache_dir="/root/autodl-tmp/GAU-PyTorch/cache")["train"]
     refids = refids.rename_column("text", "chinese_ref")

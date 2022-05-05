@@ -17,12 +17,12 @@ def attention_normalize(a, l, dim=-1, method="softmax", scaling_factor="n"):
         return torch.softmax(a, dim=dim)
     else:
         if method == "squared_relu":
-            if scaling_factor == "n":
-                return torch.relu(a) ** 2 / l
-            elif scaling_factor == "n^2":
+            if scaling_factor == "n^2":
                 return torch.relu(a / l) ** 2
             elif scaling_factor == "ns":
                 return torch.relu(a) ** 2 / (128 * l)
+            elif scaling_factor == "scale":
+                return torch.relu(a) ** 2 / (128 * l * torch.sum(torch.relu(a) ** 2, dim=-1, keepdim=True))
         elif method == "softmax_plus":
             return torch.softmax(a * torch.log(l) / np.log(512), dim=dim)
     return a
@@ -123,12 +123,12 @@ class GatedAttentionUnit(nn.Module):
     ):
         # 投影变换
         x = self.i_dense(hidden_states)
-        u, v, qk = torch.split(
+        u, v, z = torch.split(
             self.activation(x),
             [self.intermediate_size, self.intermediate_size, self.attention_key_size],
             dim=-1,
         )
-        q, k = self.q_scaleoffset(qk), self.k_scaleoffset(qk)
+        q, k = self.q_scaleoffset(z), self.k_scaleoffset(z)
         
         # 加入RoPE
         q, k = self.apply_rotary(q, sinusoidal_pos), self.apply_rotary(

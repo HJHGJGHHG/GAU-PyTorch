@@ -49,20 +49,20 @@ $$
 
 (1) **数据集解压**
 ``` shell
-unzip comment2019zh_corpus.zip -d  /root/autodl-tmp/GAU-PyTorch/small_data/comment2019zh_corpus
-unzip news2016zh_corpus.zip    -d  /root/autodl-tmp/GAU-PyTorch/small_data/news2016zh_corpus  
-unzip webText2019zh_corpus.zip -d  /root/autodl-tmp/GAU-PyTorch/small_data/webText2019zh_corpus
-unzip wiki2019zh_corpus.zip    -d  /root/autodl-tmp/GAU-PyTorch/small_data/wiki2019zh_corpus  
+unzip comment2019zh_corpus.zip -d  /root/autodl-tmp/GAU-PyTorch/clue_small_wwm_data/comment2019zh_corpus
+unzip news2016zh_corpus.zip    -d  /root/autodl-tmp/GAU-PyTorch/clue_small_wwm_data/news2016zh_corpus  
+unzip webText2019zh_corpus.zip -d  /root/autodl-tmp/GAU-PyTorch/clue_small_wwm_data/webText2019zh_corpus
+unzip wiki2019zh_corpus.zip    -d  /root/autodl-tmp/GAU-PyTorch/clue_small_wwm_data/wiki2019zh_corpus  
 ```
 (2) **将txt文件转换为jsonl格式**
 ```shell
 cd data
-python trans_to_json.py  --input_path /root/autodl-tmp/GAU-PyTorch/small_data --output_path /root/autodl-tmp/GAU-PyTorch/small_data/small_data.jsonl
+python trans_to_json.py  --input_path /root/autodl-tmp/GAU-PyTorch/clue_small_wwm_data --output_path /root/autodl-tmp/GAU-PyTorch/clue_small_wwm_data/small_data.jsonl
 ```
 (3) **使用 rjieba 进行中文分词**
 &emsp;&emsp;会得到`refids.txt`和`reftext.txt`两个文件,并组合`refids.txt`和`reftext.txt`两个文件保存成`huggingface`的`dataset`，存放在 clue_small_wwm_data 文件夹下。  
 ```shell
-python run_chinese_ref.py  --model_name /root/autodl-tmp/models/GAU --input_path /root/autodl-tmp/GAU-PyTorch/small_data/small_data.jsonl
+python run_chinese_ref.py  --model_name /root/autodl-tmp/models/GAU-Base-Full --input_path /root/autodl-tmp/GAU-PyTorch/clue_small_wwm_data/small_data.jsonl
 ```
 
 ### 5.2 开始训练（L-24-H-768）

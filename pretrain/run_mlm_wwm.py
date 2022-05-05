@@ -168,6 +168,7 @@ def main():
     # tokenizer使用了roformer_chinese_char_base
     tokenizer = BertTokenizerFast.from_pretrained(model_args.tokenizer_name)
     model = model_cls(config)
+    #model.load_state_dict(torch.load("/root/autodl-tmp/models/GAU/pytorch_model.bin"))
     model.resize_token_embeddings(len(tokenizer))
     
     # Preprocessing the datasets.
