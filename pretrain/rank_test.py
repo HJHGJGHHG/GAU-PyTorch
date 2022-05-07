@@ -37,7 +37,7 @@ class Mydataset(Dataset):
             self.data[index],
             padding="max_length",
             truncation=True,
-            max_length=1024,
+            max_length=2048,
             return_token_type_ids=True,
             return_attention_mask=True,
             return_tensors='pt',
@@ -58,14 +58,14 @@ def get_data():
 
 
 if __name__ == "__main__":
-    config = RoFormerConfig.from_pretrained("/root/autodl-tmp/models/roformerv2_chinese_base", max_position_embeddings=1024, num_labels=2)
+    config = RoFormerConfig.from_pretrained("/root/autodl-tmp/models/roformerv2_chinese_base", max_position_embeddings=2048, num_labels=2)
     model = RoFormerForSequenceClassification(config).cuda()
     model.load_state_dict(torch.load("/root/autodl-tmp/models/roformerv2_chinese_base/pytorch_model.bin"), strict=False)
     data = get_data()
     dataset = Mydataset(data)
     dataloader = DataLoader(dataset, batch_size=8)
     labels = torch.LongTensor([
-        1, 1, 1, 1, 1, 1, 1, 1
+        1, 1, 1, 1
     ]).cuda()
     no_decay = ['bias', 'LayerNorm.weight']
     optimizer_grouped_parameters = [
@@ -77,11 +77,11 @@ if __name__ == "__main__":
     scheduler = get_linear_schedule_with_warmup(
         optimizer,
         num_warmup_steps=10,
-        num_training_steps=200*8
+        num_training_steps=10*8
     )
     start = time.time()
     i = 0
-    for epoch in range(200):
+    for epoch in range(10):
         for batch in dataloader:
             i += 1
             batch = {k: torch.squeeze(v.cuda(), dim=1) for k, v in batch.items()}
@@ -91,6 +91,6 @@ if __name__ == "__main__":
             optimizer.step()
             scheduler.step()
             model.zero_grad()
-            if i % 50 == 0: print(i)
+            print(i)
     delta = time.time() - start
     print(delta)

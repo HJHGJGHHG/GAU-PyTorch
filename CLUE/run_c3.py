@@ -294,28 +294,59 @@ def accuracy(out, labels):
     return np.sum(outputs == labels)
 
 
+def evaluate(model, eval_dataloader, device):
+    model.eval()
+    eval_loss, eval_accuracy = 0, 0
+    nb_eval_steps, nb_eval_examples = 0, 0
+    logits_all = []
+    for input_ids, input_mask, segment_ids, label_ids in tqdm(eval_dataloader):
+        input_ids = input_ids.to(device)
+        input_mask = input_mask.to(device)
+        segment_ids = segment_ids.to(device)
+        label_ids = label_ids.to(device)
+        
+        with torch.no_grad():
+            output = model(input_ids, input_mask, segment_ids, labels=label_ids)
+            tmp_eval_loss, logits = output.loss, output.logits
+        
+        logits = logits.detach().cpu().numpy()
+        label_ids = label_ids.cpu().numpy()
+        for i in range(len(logits)):
+            logits_all += [logits[i]]
+        
+        tmp_eval_accuracy = accuracy(logits, label_ids.reshape(-1))
+        
+        eval_loss += tmp_eval_loss.mean().item()
+        eval_accuracy += tmp_eval_accuracy
+        
+        nb_eval_examples += input_ids.size(0)
+        nb_eval_steps += 1
+    
+    eval_loss = eval_loss / nb_eval_steps
+    eval_accuracy = eval_accuracy / nb_eval_examples
+    
+    return eval_loss, eval_accuracy
+
+
 def main():
     parser = argparse.ArgumentParser()
     ## Required parameters
-    parser.add_argument("--model_type", default=None, type=str, required=True,
+    parser.add_argument("--model_type", default="roformerv2", type=str,
                         help="Model type selected in the list: " + ", ".join(MODEL_CLASSES.keys()))
     parser.add_argument("--gpu_ids",
                         default='0',
-                        type=str,)
+                        type=str, )
     parser.add_argument("--data_dir",
-                        default=None,
+                        default="/root/autodl-tmp/GAU-PyTorch/CLUE/mrc_data/c3",
                         type=str,
-                        required=True,
                         help="The input data dir. Should contain the .tsv files (or other data files) for the task.")
     parser.add_argument("--task_name",
                         default='c3',
-                        type=str,
-                        required=True)
-    parser.add_argument("--model_name_or_path", default=None, type=str, required=True)
+                        type=str, )
+    parser.add_argument("--model_name_or_path", default="/root/autodl-tmp/models/roformerv2_chinese_base", type=str)
     parser.add_argument("--output_dir",
-                        default=None,
+                        default="/root/autodl-tmp/GAU-PyTorch/CLUE/output/c3/",
                         type=str,
-                        required=True,
                         help="The output directory where the model checkpoints will be written.")
     
     ## Other parameters
@@ -383,6 +414,9 @@ def main():
                         help="Number of updates steps to accumualte before performing a backward/update pass.")
     parser.add_argument('--setting_file', type=str, default='setting.txt')
     parser.add_argument('--log_file', type=str, default='log.txt')
+    parser.add_argument('--eval_steps',
+                        type=int,
+                        default=300)
     
     args = parser.parse_args()
     args.setting_file = os.path.join(args.output_dir, args.setting_file)
@@ -429,7 +463,7 @@ def main():
     
     processor = c3Processor(args.data_dir)
     label_list = processor.get_labels()
-
+    
     args.model_type = args.model_type.lower()
     config_class, model_class, tokenizer_class = MODEL_CLASSES[args.model_type]
     config = config_class.from_pretrained(args.model_name_or_path, num_labels=n_class,
@@ -452,7 +486,7 @@ def main():
                                                           output_device=args.local_rank)
     elif n_gpu > 1:
         model = torch.nn.DataParallel(model)
-
+    
     no_decay = ['bias', 'LayerNorm.weight']
     optimizer_grouped_parameters = [
         {'params': [p for n, p in model.named_parameters() if not any(nd in n for nd in no_decay)],
@@ -462,7 +496,7 @@ def main():
     optimizer = AdamW(optimizer_grouped_parameters, lr=args.learning_rate, eps=1e-8)
     scheduler = get_linear_schedule_with_warmup(
         optimizer,
-        num_warmup_steps=args.warmup_proportion*num_train_steps,
+        num_warmup_steps=args.warmup_proportion * num_train_steps,
         num_training_steps=num_train_steps
     )
     global_step = 0
@@ -556,7 +590,7 @@ def main():
                 for step, batch in enumerate(train_dataloader):
                     batch = tuple(t.to(device) for t in batch)
                     input_ids, input_mask, segment_ids, label_ids = batch
-                    loss = model(input_ids, segment_ids, input_mask, label_ids).loss
+                    loss = model(input_ids, input_mask, segment_ids, labels=label_ids).loss
                     if n_gpu > 1:
                         loss = loss.mean()  # mean() to average on multi-gpu.
                     if args.gradient_accumulation_steps > 1:
@@ -575,58 +609,31 @@ def main():
                         nb_tr_steps += 1
                         pbar.set_postfix({'loss': '{0:1.5f}'.format(tr_loss / (nb_tr_steps + 1e-5))})
                         pbar.update(1)
-            
-            if args.do_eval:
-                model.eval()
-                eval_loss, eval_accuracy = 0, 0
-                nb_eval_steps, nb_eval_examples = 0, 0
-                logits_all = []
-                for input_ids, input_mask, segment_ids, label_ids in tqdm(eval_dataloader):
-                    input_ids = input_ids.to(device)
-                    input_mask = input_mask.to(device)
-                    segment_ids = segment_ids.to(device)
-                    label_ids = label_ids.to(device)
                     
-                    with torch.no_grad():
-                        output = model(input_ids, segment_ids, input_mask, label_ids)
-                        tmp_eval_loss, logits = output.loss, output.logits
-                    
-                    logits = logits.detach().cpu().numpy()
-                    label_ids = label_ids.cpu().numpy()
-                    for i in range(len(logits)):
-                        logits_all += [logits[i]]
-                    
-                    tmp_eval_accuracy = accuracy(logits, label_ids.reshape(-1))
-                    
-                    eval_loss += tmp_eval_loss.mean().item()
-                    eval_accuracy += tmp_eval_accuracy
-                    
-                    nb_eval_examples += input_ids.size(0)
-                    nb_eval_steps += 1
-                
-                eval_loss = eval_loss / nb_eval_steps
-                eval_accuracy = eval_accuracy / nb_eval_examples
-                
-                if args.do_train:
-                    result = {'eval_loss': eval_loss,
-                              'eval_accuracy': eval_accuracy,
-                              'global_step': global_step,
-                              'loss': tr_loss / nb_tr_steps}
-                else:
-                    result = {'eval_loss': eval_loss,
-                              'eval_accuracy': eval_accuracy}
-                
-                logger.info("***** Eval results *****")
-                for key in sorted(result.keys()):
-                    logger.info("  %s = %s", key, str(result[key]))
-                
-                with open(args.log_file, 'a') as aw:
-                    aw.write("-------------------global steps:{}-------------------\n".format(global_step))
-                    aw.write(str(json.dumps(result, indent=2)) + '\n')
-                
-                if eval_accuracy >= best_accuracy:
-                    torch.save(model.state_dict(), os.path.join(args.output_dir, "model_best.pt"))
-                    best_accuracy = eval_accuracy
+                    if (global_step + 1) % args.eval_steps == 0:
+                        if args.do_eval:
+                            eval_loss, eval_accuracy = evaluate(model, eval_dataloader, device)
+                            
+                            if args.do_train:
+                                result = {'eval_loss': eval_loss,
+                                          'eval_accuracy': eval_accuracy,
+                                          'global_step': global_step,
+                                          'loss': tr_loss / nb_tr_steps}
+                            else:
+                                result = {'eval_loss': eval_loss,
+                                          'eval_accuracy': eval_accuracy}
+                            
+                            logger.info("***** Eval results *****")
+                            for key in sorted(result.keys()):
+                                logger.info("  %s = %s", key, str(result[key]))
+                            
+                            with open(args.log_file, 'a') as aw:
+                                aw.write("-------------------global steps:{}-------------------\n".format(global_step))
+                                aw.write(str(json.dumps(result, indent=2)) + '\n')
+                            
+                            if eval_accuracy >= best_accuracy:
+                                torch.save(model.state_dict(), os.path.join(args.output_dir, "model_best.pt"))
+                                best_accuracy = eval_accuracy
         
         model.load_state_dict(torch.load(os.path.join(args.output_dir, "model_best.pt")))
         torch.save(model.state_dict(), os.path.join(args.output_dir, "model.pt"))
@@ -638,35 +645,7 @@ def main():
         logger.info("  Num examples = %d", len(eval_examples))
         logger.info("  Batch size = %d", args.eval_batch_size)
         
-        model.eval()
-        eval_loss, eval_accuracy = 0, 0
-        nb_eval_steps, nb_eval_examples = 0, 0
-        logits_all = []
-        for input_ids, input_mask, segment_ids, label_ids in tqdm(eval_dataloader):
-            input_ids = input_ids.to(device)
-            input_mask = input_mask.to(device)
-            segment_ids = segment_ids.to(device)
-            label_ids = label_ids.to(device)
-            
-            with torch.no_grad():
-                output = model(input_ids, segment_ids, input_mask, label_ids)
-                tmp_eval_loss, logits = output.loss, output.logits
-            
-            logits = logits.detach().cpu().numpy()
-            label_ids = label_ids.cpu().numpy()
-            for i in range(len(logits)):
-                logits_all += [logits[i]]
-            
-            tmp_eval_accuracy = accuracy(logits, label_ids.reshape(-1))
-            
-            eval_loss += tmp_eval_loss.mean().item()
-            eval_accuracy += tmp_eval_accuracy
-            
-            nb_eval_examples += input_ids.size(0)
-            nb_eval_steps += 1
-        
-        eval_loss = eval_loss / nb_eval_steps
-        eval_accuracy = eval_accuracy / nb_eval_examples
+        eval_loss, eval_accuracy = evaluate(model, eval_dataloader, device)
         
         result = {'eval_loss': eval_loss,
                   'eval_accuracy': eval_accuracy}
@@ -738,7 +717,7 @@ def main():
             label_ids = label_ids.to(device)
             
             with torch.no_grad():
-                tmp_test_loss, logits = model(input_ids, segment_ids, input_mask, label_ids, return_logits=True)
+                tmp_test_loss, logits = model(input_ids, input_mask, segment_ids, labels=label_ids)
             
             logits = logits.detach().cpu().numpy()
             label_ids = label_ids.to('cpu').numpy()

@@ -22,9 +22,18 @@ from mlm_trainer import Trainer
 import sys
 
 sys.path.append("../")
-from utils.modeling import GAUConfig, GAUForMaskedLM
+from utils.modeling import GAUConfig, GAUForMaskedLM, GAUForSequenceClassification
+from utils.roformer.configuration_roformer import RoFormerConfig
+from utils.roformer.tokenization_roformer import RoFormerTokenizer
+from utils.roformer.modeling_roformer import RoFormerForMaskedLM
 
 logger = logging.getLogger(__name__)
+MODEL_CLASSES = {
+    # RoFormer, GAU
+    'gau': (GAUConfig, GAUForMaskedLM, BertTokenizerFast),
+    'roformer': (RoFormerConfig, RoFormerForMaskedLM, RoFormerTokenizer),
+    'roformerv2': (RoFormerConfig, RoFormerForMaskedLM, RoFormerTokenizer)
+}
 
 
 @dataclass
@@ -46,9 +55,15 @@ class ModelArguments:
         },
     )
     scaling_factor: Optional[str] = field(
-        default="scaling_factor",
+        default="n",
         metadata={
             "help": "scaling_factor"
+        },
+    )
+    model_type: Optional[str] = field(
+        default="gau",
+        metadata={
+            "help": "model_type"
         },
     )
 
@@ -159,16 +174,13 @@ def main():
     # 加载clue_wwm_13g数据集
     datasets = Dataset.load_from_disk(data_args.train_dir)
     
-    config_cls, model_cls = GAUConfig, GAUForMaskedLM
-    config = config_cls(
-        normalization=model_args.activation_function,
-        scaling_factor=model_args.scaling_factor
-    )
-    logger.info("Model config %s", config)
+    config_class, model_class, tokenizer_class = MODEL_CLASSES[model_args.model_type]
+    config = config_class.from_pretrained(model_args.tokenizer_name)
+    logger.info(model_args.model_type + " Model config %s", config)
     # tokenizer使用了roformer_chinese_char_base
-    tokenizer = BertTokenizerFast.from_pretrained(model_args.tokenizer_name)
-    model = model_cls(config)
-    #model.load_state_dict(torch.load("/root/autodl-tmp/models/GAU/pytorch_model.bin"))
+    tokenizer = tokenizer_class.from_pretrained(model_args.tokenizer_name)
+    model = model_class(config)
+    # model.load_state_dict(torch.load("/root/autodl-tmp/models/GAU/pytorch_model.bin"))
     model.resize_token_embeddings(len(tokenizer))
     
     # Preprocessing the datasets.

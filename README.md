@@ -2,6 +2,7 @@
 ## 一、Describtion
 &emsp;&emsp;`PyTorch`版本的魔改 [《Transformer Quality in Linear Time》](https://arxiv.org/abs/2202.10447)在中文 NLU 任务上的复现、评测试验。  
 &emsp;&emsp;参考：JunnYu 的 [实现](https://github.com/JunnYu/GAU-alpha-pytorch) 与苏神的 [实现](https://github.com/ZhuiyiTechnology/GAU-alpha) 与 [笔记](https://spaces.ac.cn/archives/8934)
+&emsp;&emsp;更多细节见整理的文章：  
 
 ## 二、模型概述
 &emsp;&emsp;原论文提出了一种 ***将 Attention 与 FFN 相结合*** 的方案：GAU。  
@@ -32,9 +33,10 @@ $$
 $$
 
 ## 三、TODO
-- 创建蒸馏实验  
+- 预训练  
 
 ## 四、更新
+- 2022/05/07 相关工作整理成文  
 - 2022/04/27 添加模型笔记、显存、推理速度比较结果。   
 - 2022/04/23 增加 CLUE 评测  
 - 2022/04/18 两种归一化策略比较  
@@ -68,16 +70,17 @@ python run_chinese_ref.py  --model_name /root/autodl-tmp/models/GAU-Base-Full --
 ### 5.2 开始训练（L-24-H-768）
 ```bash
 TRAIN_DIR=/root/autodl-tmp/GAU-PyTorch/clue_small_wwm_data
-OUTPUT_DIR=/root/autodl-tmp/GAU-PyTorch/outputs
-BATCH_SIZE=64
-ACCUMULATION=4
+BATCH_SIZE=32
+ACCUMULATION=8
 LR=2e-4
+ACTIVATION_FUNCTION=roformerv2
 python run_mlm_wwm.py \
   --do_train \
-  --tokenizer_name junnyu/roformer_chinese_char_base \
+  --model_type roformerv2 \
+  --tokenizer_name /root/autodl-tmp/models/roformerv2_chinese_base \
   --train_dir $TRAIN_DIR \
-  --output_dir $OUTPUT_DIR \
-  --logging_dir /root/tf-logs/$BATCH_SIZE \
+  --output_dir /root/autodl-tmp/GAU-PyTorch/outputs/$ACTIVATION_FUNCTION/ \
+  --logging_dir /root/tf-logs/$ACTIVATION_FUNCTION/ \
   --per_device_train_batch_size $BATCH_SIZE \
   --gradient_accumulation_steps $ACCUMULATION \
   --learning_rate $LR \
@@ -86,11 +89,14 @@ python run_mlm_wwm.py \
   --max_steps 30000 \
   --warmup_steps 3000 \
   --logging_steps 50 \
-  --save_steps 3000 \
+  --save_steps 2000 \
   --seed 1234 \
   --max_grad_norm 1.0 \
   --dataloader_num_workers 6 \
-  --fp16
+  --fp16 \
+  --activation_function $ACTIVATION_FUNCTION \
+  --scaling_factor n \
+  --pad_to_max_length False \
 ```
 
 ## 六、比较
@@ -101,7 +107,7 @@ softmax\_plus=softmax\left(\frac{\log_{512} n}{\sqrt{d}}QK^{\top}\right)V
 $$
 &emsp;&emsp;与 FLASH 原论文提出的：  
 $$
-squared\_relu=\frac{1}{n} relu^2\left(\frac{QK^{\top}}{\sqrt{d}}\right)V
+squared\_relu=\frac{1}{n^2} relu^2\left(\frac{QK^{\top}}{\sqrt{d}}\right)V
 $$
 &emsp;&emsp;在预训练阶段：squared relu 出现了较为严重的波动，几次 checkpoint 也未能恢复正常。排查原因后发现是波动附近 batch 的 sql_len 与其他 batch 接近 512 的长度有较大差异。这进一步说明了 squared relu 在样本长度方面的迁移能力不好。而苏神的 softmax plus 则训练稳定，效果较好，原因与推导详见 [blog](https://spaces.ac.cn/archives/9019)  
 
@@ -112,7 +118,7 @@ $$
 |  模型  | AFQMC  | CMNLI | CSL | IFLYTEK | TNews | WSC | Score |
 |  :--:  | :--:  | :--:  | :--:  | :--:  | :--:  | :--:  | :--:  |
 | RoFormerV1 | 74.21 | 81.50 | 83.13 | 60.17 | 58.07 | 83.22 | 73.38 |
-| RoFormerV2 | **76.16** | 81.41 | **85.97** | **63.64** | **59.39** | **85.53** | **75.35** |
+| RoFormerV2 | **75.96** | 81.41 | **84.81** | **63.24** | **59.39** | **83.93** | **74.79** |
 | GAU(3W) | 73.14 | 76.73 | 80.44 | 59.81 | 54.66 | 75.9 | 70.19 |
 | RoFormerV2(3W) | 73.97 | 77.82 | 79.65 | 58.73 | 53.3 | 76.41 | 69.96 |
 | GAU(Full) | 74.51 | **81.97** | 83.7 | 62.72 | 57.93 | 82.89 | 73.95 |
