@@ -2,9 +2,9 @@ TASK=cmnli
 LR=3e-5
 BATCH_SIZE=32
 python evaluate.py \
-  --model_type gau \
+  --model_type roformerv2 \
   --data_dir /root/autodl-tmp/GAU-PyTorch/CLUE/CLUEdatasets/$TASK \
-  --model_name_or_path /root/autodl-tmp/GAU-PyTorch/outputs/softmax_plus \
+  --model_name_or_path /root/autodl-tmp/GAU-PyTorch/outputs/roformerv2 \
   --task_name $TASK \
   --output_dir /root/autodl-tmp/GAU-PyTorch/CLUE/output/$TASK/ \
   --max_seq_length 512 \
@@ -14,6 +14,6 @@ python evaluate.py \
   --do_eval \
   --do_lower_case \
   --overwrite_output_dir \
-  --logging_steps 50 \
+  --logging_steps 1000 \
   --warmup_proportion 0.1 \
   --num_train_epochs 3
