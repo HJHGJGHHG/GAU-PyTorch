@@ -204,7 +204,7 @@ def json2features(input_file, output_files, tokenizer, is_training=False, max_qu
                     cleaned_answer_text = "".join(whitespace_tokenize(ans_text))
 
                     if actual_text != cleaned_answer_text:
-                        print(actual_text, 'V.S', cleaned_answer_text)
+                        print(actual_text, 'V.s', cleaned_answer_text)
                         mis_match += 1
 
                 examples.append({'doc_tokens': doc_tokens,

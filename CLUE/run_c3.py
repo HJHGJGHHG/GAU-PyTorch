@@ -43,7 +43,7 @@ reverse_order = False
 sa_step = False
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
-                    datefmt='%m/%d/%Y %H:%M:%S',
+                    datefmt='%m/%d/%Y %H:%M:%s',
                     level=logging.INFO)
 logger = logging.getLogger(__name__)
 
